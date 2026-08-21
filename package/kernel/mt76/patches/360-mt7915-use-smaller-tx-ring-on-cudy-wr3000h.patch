@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+Subject: [PATCH mt76] wifi: mt7915: use smaller TX ring on Cudy WR3000H
+
+The MT7915 driver uses a 2048-entry TX ring by default. On the MT7981,
+a smaller ring is a useful performance experiment because it reduces
+excess queueing in the Wi-Fi data path.
+
+Limit the experiment to the Cudy WR3000H and retain the upstream default
+for other MT7915 devices.
+
+---
+ mt7915/mt7915.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+--- a/mt7915/mt7915.h
++++ b/mt7915/mt7915.h
+@@ -22,3 +22,7 @@
++#ifdef CONFIG_MT7981_CUDY_WR3000H
++#define MT7915_TX_RING_SIZE		256
++#else
+ #define MT7915_TX_RING_SIZE		2048
++#endif
+ #define MT7915_TX_MCU_RING_SIZE		256
+ #define MT7915_TX_FWDL_RING_SIZE	128
