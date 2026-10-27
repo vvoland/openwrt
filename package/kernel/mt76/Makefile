@@ -232,10 +232,6 @@ define KernelPackage/mt7915-firmware
   DEPENDS+=+kmod-mt7915e
 endef
 
-ifdef CONFIG_TARGET_mediatek_filogic_DEVICE_cudy_wr3000h-v1
-  MODPARAMS.mt7915e:=wed_enable=Y
-endif
-
 define KernelPackage/mt7915e
   $(KernelPackage/mt76-default)
   TITLE:=MediaTek MT7915e wireless driver
@@ -483,9 +479,6 @@ ifdef CONFIG_PACKAGE_kmod-mt7915e
   ifdef CONFIG_TARGET_mediatek_filogic
     PKG_MAKE_FLAGS += CONFIG_MT798X_WMAC=y
     NOSTDINC_FLAGS += -DCONFIG_MT798X_WMAC
-    ifdef CONFIG_TARGET_mediatek_filogic_DEVICE_cudy_wr3000h-v1
-      NOSTDINC_FLAGS += -DCONFIG_MT7981_CUDY_WR3000H
-    endif
   endif
 endif
 ifdef CONFIG_PACKAGE_kmod-mt792x-common
