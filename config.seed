@@ -3,7 +3,6 @@ CONFIG_TARGET_mediatek_filogic=y
 CONFIG_TARGET_mediatek_filogic_DEVICE_cudy_wr3000h-v1=y
 CONFIG_TARGET_INITRAMFS_COMPRESSION_ZSTD=y
 CONFIG_VERSIONOPT=y
-CONFIG_PACKAGE_opkg=y
 CONFIG_PACKAGE_kmod-i2c-core=y
 CONFIG_PACKAGE_kmod-usb-net-cdc-ncm=y
 CONFIG_PACKAGE_kmod-usb-net-rndis=y
