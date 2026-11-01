@@ -1,5 +1,2 @@
-# Only firmware customizations belong in the local build context.
+# The image only provides dependencies; build inputs are mounted at runtime.
 **
-!config.seed
-!patches
-!patches/*.patch

@@ -1,43 +1,43 @@
 # Cudy WR3000H firmware
 
 Build customized OpenWrt firmware for the Cudy WR3000H v1 without maintaining an OpenWrt source checkout.
-Docker BuildKit fetches the upstream source and applies the configuration, patches, and overlay in this repository.
+The Dockerfile provides the build environment; a running container fetches upstream source and builds the firmware using this repository's configuration, patches, and overlay.
 
 ## Build
 
-Run on the host with Make, Git, Docker, and the Buildx plugin available:
+Run on the host with Make, Git, and Docker available:
 
 ```fish
 make
 ```
 
-The Makefile reads this repository's Git revision and runs `docker buildx bake`.
-Use `BAKE_ARGS` to pass additional Bake arguments.
-Firmware versions are labeled `custom-<revision>`.
-Build artifacts are exported to `bin/`.
-Calling Bake directly without setting `REVISION` produces `custom-unknown`.
+The Makefile builds the dependency image, then runs `build.sh` with `docker run --rm`.
+Firmware compilation does not run in a Dockerfile or require Buildx/Bake.
+The Makefile reads this repository's Git revision to label firmware versions `custom-<revision>`.
+Build artifacts are copied to `bin/` and owned by the invoking host user.
 
 Router configuration must exist at `~/src/routers/`.
 The build synchronizes it into `/etc/config` in the firmware, replacing any configuration from the overlay.
 To use a different directory:
 
 ```fish
-make BAKE_ARGS='--set firmware.contexts.router-config=/path/to/routers'
+make ROUTER_CONFIG=/path/to/routers
 ```
 
 Router configuration and overlay contents become part of the firmware.
-Use a trusted builder and protect exported images if they contain credentials.
-Local signing keys are not sent to the builder; the build generates fresh keys.
+Use a trusted Docker host and protect exported images if they contain credentials.
+Local signing keys are not mounted into the container; the build generates fresh keys.
 
 ## Customization
 
-- `docker-bake.hcl` selects the upstream OpenWrt ref, defaulting to `v25.12.6`.
+- `Makefile` selects the upstream OpenWrt ref, defaulting to `v25.12.6`.
 - `config.seed` selects the device and packages.
 - `patches/*.patch` contains source changes, applied in filename order.
 - `files/` supplies the firmware filesystem overlay.
-- `Dockerfile` runs the firmware build inside the fetched source tree.
+- `Dockerfile` provides Debian 13 and the OpenWrt host dependencies.
+- `build.sh` fetches, configures, and compiles OpenWrt inside the running container.
 
-Change `OPENWRT_REF` in `docker-bake.hcl` to select another release without rebasing this repository.
+Change `OPENWRT_REF` in `Makefile` to select another release without rebasing this repository.
 It accepts a tag, branch, or full 40-character commit hash.
 The selected upstream source also supplies the feed definitions.
 Override the ref or build parallelism for one invocation:
@@ -52,9 +52,20 @@ A patch that no longer applies stops the build; an empty or absent patch directo
 Recheck patches whenever the upstream ref changes.
 The included patch restores the smaller MT7915 TX-ring experiment only for the Cudy WR3000H; it does not enable WED.
 
-## Build environment
+## Build environment and caches
 
-The build stage uses Debian 13 with explicit OpenWrt host dependencies and runs compilation as a non-root `builder` user.
-Source inputs use read-only bind mounts, and apt, source downloads, and feeds use locked BuildKit caches.
-The local source context includes only `config.seed` and `patches/*.patch`.
-Build artifacts are copied outside the mounts before export, so empty caches are safe.
+Compilation runs as a non-root `builder` user in a disposable container.
+Only the build script, seed configuration, patches, overlay, and router configuration are bind-mounted as read-only inputs.
+The Docker image build context excludes repository contents; no firmware inputs or secrets are copied into the image.
+Source and compilation outputs are recreated on each run, while named Docker volumes `openwrt-dl` and `openwrt-feeds` retain downloads and feeds between builds.
+Empty cache volumes are initialized automatically, and builds sharing caches are serialized with file locks.
+These firmware caches live on the Docker host, not in BuildKit.
+The dependency image uses locked BuildKit caches for apt downloads and package indexes.
+
+Use a different cache prefix to keep independent caches or run builds concurrently with separate output directories:
+
+```fish
+make CACHE_PREFIX=openwrt-test
+```
+
+Set `IMAGE` to override the dependency image name, which defaults to `openwrt-builder`.

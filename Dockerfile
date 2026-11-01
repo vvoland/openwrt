@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM debian:13-slim AS build
+FROM debian:13-slim
 
 # Debian's cleanup hook would empty the apt download cache.
 RUN rm -f /etc/apt/apt.conf.d/docker-clean
@@ -40,40 +40,3 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 RUN useradd --create-home --user-group --home-dir /builder --shell /bin/bash builder
 
 WORKDIR /build
-
-ARG JOBS=12
-ARG REVISION=unknown
-
-RUN --mount=type=bind,from=openwrt,target=/src \
-    --mount=type=bind,target=/custom \
-    --mount=type=bind,from=overlay,target=/overlay \
-    --mount=type=bind,from=router-config,target=/router-config \
-    --mount=type=cache,id=openwrt-dl,target=/build/dl,sharing=locked \
-    --mount=type=cache,id=openwrt-feeds,target=/build/feeds,sharing=locked <<'EOF'
-set -eu
-export LC_ALL=C
-cp -a /src/. .
-for patch in /custom/patches/*.patch; do
-    [ -f "$patch" ] || continue
-    git apply --verbose "$patch"
-done
-cp -a /custom/config.seed ./
-mkdir -p files/etc/config /out /builder/src/routers
-cp -a /overlay/. files/
-cp -a /router-config/. /builder/src/routers/
-chown -R builder:builder /build /out /builder/src/routers
-su builder -s /bin/sh <<'BUILD'
-set -ex
-./scripts/feeds update -a
-./scripts/feeds install -a
-cp config.seed .config
-printf 'CONFIG_VERSION_CODE="custom-%s"\n' "$REVISION" >> .config
-make defconfig
-rsync --delete -a ~/src/routers/ ./files/etc/config/
-make -j"$JOBS"
-cp -a bin/. /out/
-BUILD
-EOF
-
-FROM scratch AS firmware
-COPY --from=build /out/ /
