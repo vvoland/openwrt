@@ -1,0 +1,7 @@
+/bin/
+/.env
+/.env.*
+/key-build*
+/private-key.pem
+/public-key.pem
+/files/etc/config/

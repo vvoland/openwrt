@@ -1,0 +1,54 @@
+From 2d69c41702e88c40bf1ac5fb090049b1fbff7cb0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Pawe=C5=82=20Gronowski?= <git@grono.dev>
+Date: Fri, 21 Aug 2026 10:00:13 +0200
+Subject: [PATCH] mt76: Try smaller MT7915 TX ring on WR3000H
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Paweł Gronowski <git@grono.dev>
+
+diff --git a/package/kernel/mt76/Makefile b/package/kernel/mt76/Makefile
+index fc195a3772..b99dd27959 100644
+--- a/package/kernel/mt76/Makefile
++++ b/package/kernel/mt76/Makefile
+@@ -483,6 +483,9 @@ ifdef CONFIG_PACKAGE_kmod-mt7915e
+   ifdef CONFIG_TARGET_mediatek_filogic
+     PKG_MAKE_FLAGS += CONFIG_MT798X_WMAC=y
+     NOSTDINC_FLAGS += -DCONFIG_MT798X_WMAC
++    ifdef CONFIG_TARGET_mediatek_filogic_DEVICE_cudy_wr3000h-v1
++      NOSTDINC_FLAGS += -DCONFIG_MT7981_CUDY_WR3000H
++    endif
+   endif
+ endif
+ ifdef CONFIG_PACKAGE_kmod-mt792x-common
+diff --git a/package/kernel/mt76/patches/360-mt7915-use-smaller-tx-ring-on-cudy-wr3000h.patch b/package/kernel/mt76/patches/360-mt7915-use-smaller-tx-ring-on-cudy-wr3000h.patch
+new file mode 100644
+index 0000000000..a56b8790ce
+--- /dev/null
++++ b/package/kernel/mt76/patches/360-mt7915-use-smaller-tx-ring-on-cudy-wr3000h.patch
+@@ -0,0 +1,24 @@
++From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
++Subject: [PATCH mt76] wifi: mt7915: use smaller TX ring on Cudy WR3000H
++
++The MT7915 driver uses a 2048-entry TX ring by default. On the MT7981,
++a smaller ring is a useful performance experiment because it reduces
++excess queueing in the Wi-Fi data path.
++
++Limit the experiment to the Cudy WR3000H and retain the upstream default
++for other MT7915 devices.
++
++---
++ mt7915/mt7915.h | 4 ++++
++ 1 file changed, 4 insertions(+)
++
++--- a/mt7915/mt7915.h
+++++ b/mt7915/mt7915.h
++@@ -22,3 +22,7 @@
+++#ifdef CONFIG_MT7981_CUDY_WR3000H
+++#define MT7915_TX_RING_SIZE		256
+++#else
++ #define MT7915_TX_RING_SIZE		2048
+++#endif
++ #define MT7915_TX_MCU_RING_SIZE		256
++ #define MT7915_TX_FWDL_RING_SIZE	128

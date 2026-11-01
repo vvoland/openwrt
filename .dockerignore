@@ -1,0 +1,5 @@
+# Only firmware customizations belong in the local build context.
+**
+!config.seed
+!patches
+!patches/*.patch
